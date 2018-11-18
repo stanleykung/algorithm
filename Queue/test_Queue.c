@@ -42,3 +42,16 @@ void DeQueue(MyQueue * queue) {
     queue->size--;
   }
 }
+
+int IsFull(MyQueue * queue){
+  return (queue->size==queue->capacity)
+}
+
+int IsEmpty(MyQueue * queue){
+  return (queue->front==queue->rear)
+}
+
+void PrintQueue(MyQueue * queue){
+  for(int i=queue->front;i<queue->rear;i++)
+    printf("%f\t", queue->data[(unsigned)i]);
+}
