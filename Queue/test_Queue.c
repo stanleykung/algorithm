@@ -7,12 +7,12 @@ struct MyQueue {
   int size;
   int capacity;
   float * data;
-}
+};
 
 typedef struct MyQueue MyQueue;
 
 MyQueue * CreateQueue(int capacity){
-  MyQueue queue = MyQueue * malloc(sizeof(MyQueue));
+  MyQueue * queue = (MyQueue *)malloc(sizeof(MyQueue));
   queue->rear = 0;
   queue->front = 0;
   queue->size = 0;
@@ -31,7 +31,7 @@ void EnQueue(MyQueue * queue, float x){
   }
 }
 
-void DeQueue(MyQueue * queue) {
+float DeQueue(MyQueue * queue) {
   if(IsEmpty(queue))
     printf("%s\n", "The queue is empty which cannot pop any elements");
   else{
@@ -40,18 +40,35 @@ void DeQueue(MyQueue * queue) {
     queue->data[(unsigned)queue->front] = 0;
     queue->front++;
     queue->size--;
+    return x;
   }
 }
 
 int IsFull(MyQueue * queue){
-  return (queue->size==queue->capacity)
+  return (queue->size==queue->capacity);
 }
 
 int IsEmpty(MyQueue * queue){
-  return (queue->front==queue->rear)
+  return (queue->front==queue->rear);
 }
 
 void PrintQueue(MyQueue * queue){
   for(int i=queue->front;i<queue->rear;i++)
     printf("%f\t", queue->data[(unsigned)i]);
+  printf("\n");
+}
+
+int main(){
+  MyQueue * queue;
+  queue = CreateQueue(3);
+  EnQueue(queue,1);
+  EnQueue(queue,2);
+  EnQueue(queue,3);
+  PrintQueue(queue);
+  EnQueue(queue,4);
+  printf("Pop the element: %f\n", DeQueue(queue));
+  PrintQueue(queue);
+  for (size_t i = 0; i < 3; i++) {
+    printf("Pop the element: %f\n", DeQueue(queue));
+  }
 }
