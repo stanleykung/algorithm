@@ -17,6 +17,38 @@ node_t * create_list(float x){
 	return head;
 }
 
+float get_element(node_t * n, unsigned x){
+	node_t * current = n;
+	for(int i=0; i<x; i++){
+		current = current->next;
+	}
+	return current->val;
+}
+
+int get_length(node_t * n){
+	int count=0;
+	node_t * current = n;
+	for(;;){
+		if(current == NULL){
+			count = 0;
+			break;
+		}
+		else if(current->next==NULL){
+			count++;
+			break;
+		}
+		else if(current->next!=NULL){
+			count++;
+			current = current->next;
+		}
+	}
+	/*while(current->next!=NULL){
+		count++;
+		current = current->next;
+	}*/
+	return count;
+}
+
 void insert_bottom(node_t * n, float x){
 	// finding the bottom of the list
 	node_t * current = n;
@@ -58,22 +90,21 @@ void insert_order(node_t * n, float x, unsigned y){
 	}
 }
 
-void delete_bottom(node_t * n){
+node_t * delete_bottom(node_t * n){
 	node_t * current = n;
 	node_t * parent = NULL;
 
 	//if the list is empty, show the warning and jump out the function
 	if(n==NULL){
 		printf("%s\n", "The list is empty which cannot delete any element more!");
-		return;
+		return NULL;
 	}
 	else{
 		//when there is only one element in the list
 		//free the whole list
 		if(current->next==NULL){
-			free(n);
-			n=NULL;
-			return;
+			free(current);
+			return NULL;
 		}
 
 		//find the bottom of the list
@@ -83,44 +114,45 @@ void delete_bottom(node_t * n){
 		}
 		parent->next = NULL;
 		free(current);
-		n = NULL;
+		return n;
 	}
 }
 
-float get_element(node_t * n, unsigned x){
+node_t * delete_top(node_t * n){
+	node_t * child = n->next;
+	free(n);
+	return child;
+}
+
+node_t * delete_order(node_t * n, int x){
 	node_t * current = n;
+	node_t * parent = NULL;
+
+	//delete the element at the top
+	if(x==0){
+		n = delete_top(n);
+		return n;
+	}
+
+	//the input order is not in the range of size of list
+	if(x >= get_length(n)){
+		printf("%s\n", "The input order is out of range of the size of list");
+		return n;
+	}
+
 	for(int i=0; i<x; i++){
+		parent = current;
 		current = current->next;
 	}
-	return current->val;
-}
-
-int get_length(node_t * n){
-	int count=0;
-	node_t * current = n;
-	for(;;){
-		if(current == NULL)
-			count = 0;
-		else if(current->next==NULL){
-			count++;
-			break;
-		}
-		else if(current->next!=NULL){
-			count++;
-			current = current->next;
-		}
-	}
-	/*while(current->next!=NULL){
-		count++;
-		current = current->next;
-	}*/
-	return count;
+	parent->next = current->next;
+	free(current);
+	return n;
 }
 
 void print_list(node_t * n){
 	node_t * current = n;
 	if(n==NULL)
-		printf("%s\n", "The list is empty which cannot delete any element more!");
+		printf("%s\n", "The list is empty! Cannot print!");
 	else{
 		while(current!=NULL){
 			printf("%f\t", current->val);
@@ -143,7 +175,7 @@ int main(){
 	printf("length: %d\n",get_length(head));
 	
 	printf("%s\n", "-----------------");
-	delete_bottom(head);
+	head = delete_bottom(head);
 	print_list(head);
 
 	printf("%s\n", "-----------------");
@@ -151,8 +183,7 @@ int main(){
 		printf("---\n");
 		if(head!=NULL){
 			printf("delete the element in the bottom\n");
-			delete_bottom(head);
-			printf("hi2\n");
+			head = delete_bottom(head);
 			print_list(head);
 		}
 		else{
@@ -160,4 +191,24 @@ int main(){
 		}
 		printf("current length: %d\n",get_length(head));
 	}
+
+	printf("%s\n", "-----------------");
+	if(head==NULL)
+		head = create_list(10);
+	else
+		insert_bottom(head,10);
+	print_list(head);
+	for(int i=20; i<70; i=i+10)
+		insert_bottom(head,i);
+	print_list(head);
+	head = delete_top(head);
+	print_list(head);
+	head = delete_order(head,2);
+	print_list(head);
+	head = delete_order(head,0);
+	print_list(head);
+	head = delete_order(head,2);
+	print_list(head);
+	head = delete_order(head,2);
+	print_list(head);
 }
