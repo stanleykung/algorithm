@@ -28,14 +28,48 @@ void print_arr_part(int * left, int * right){
 void merge(int * arr, int left, int center, int right){
 	int templ = left;
 	int tempr = center;
-	//int * temp = malloc(sizeof(int)*(right-left))
+
+	int k = 0;
+	int * temp = malloc(sizeof(int)*(right-left+1));
+
 	if(templ<center && tempr<right+1){ // both sub-arrays are not finished
 		if(arr[tempr]<arr[templ]){
+			temp[k] = arr[tempr];
+			tempr++;
+			k++;
+		}
+		else{
+			temp[k] = arr[templ];
+			templ++;
+			k++;
+		}
+	}
+	else if(templ >= center){ // left sub-array is finished
+		temp[k] = arr[tempr];
+		tempr++;
+		k++;
+	}
+	else{ // right sub-array is finished
+		temp[k] = arr[templ];
+		templ++;
+		k++;
+	}
+
+	//put the sorted array back into the input array
+	for(int i = 0; i<right-left+1; i++){
+		arr[left+i] = temp[i];
+	}
+
+	/*if(templ<center && tempr<right+1){ // both sub-arrays are not finished
+		if(arr[tempr]<arr[templ]){
 			swap(&arr[tempr], &arr[templ]);
+			print_arr(arr);
+			printf("The index: %d, %d\n", templ, tempr);
 			tempr++;
 		}
 		else
 			templ++;
+		}
 	}
 	else if(templ >= center){ // left sub-array is finished
 		tempr++;
@@ -44,7 +78,7 @@ void merge(int * arr, int left, int center, int right){
 		templ++;
 	}
 	else
-		return;			
+		return;/*
 
 	/*if(templ==center-1 && tempr ==right)
 		if(arr[tempr]<arr[templ])
@@ -61,12 +95,14 @@ void sort(int * arr, int left, int right){
 	int len = right-left;
 
 	//if there is only one element in the array, just return the array (the end of divide)
-	if(len == 1) 
+	if(len == 0)
 		return;// left == right
 	else{
 		//divided left sub-array
+		printf("====> %d, %d, %d, %d\n", left, (left+right+1)/2-1, (left+right+1)/2, right);
 		sort(arr, left, (left+right+1)/2-1);
 		sort(arr, (left+right+1)/2,  right);
+		printf("----> %d, %d, %d, %d\n", left, (left+right+1)/2-1, (left+right+1)/2, right);
 		merge(arr, left, (left+right+1)/2, right);
 	}
 }
