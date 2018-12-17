@@ -14,20 +14,24 @@ typedef struct CircularQueue CQ;
 
 CQ * InitializeCQ(){
     CQ queue;
+    CQ * q = &queue;
     queue.cur_size = SIZE;
     for(int i = 0; i < SIZE; i++)
-        queue.data[i] = 0;
-    return &queue;
+        queue.data[i] = i;
+
+    return q;
 }
 
 void PrintCQ(CQ * queue){
-    for(int i = 0; i < queue->cur_size; i++)
-        printf("%d\t", queue->data[i]);
+    //printf("%d\n", queue->cur_size);
+    for(int i = 0; i < 10; i++){
+        printf("%d\t", queue->cur_size);
+        //printf("%d, %d\t", i, queue->data[i]);
+    }
     printf("\n");
 }
 
 int main(){
-    CQ * queue;
-    queue = InitializeCQ();
+    CQ * queue = InitializeCQ();
     PrintCQ(queue);
 }
