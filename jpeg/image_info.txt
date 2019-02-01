@@ -1,0 +1,16 @@
+ struct with fields:
+
+           Filename: '/home/kungdehan/program/c/jpeg/ncku.jpg'
+        FileModDate: '01-Feb-2019 14:11:39'
+           FileSize: 76124
+             Format: 'jpg'
+      FormatVersion: ''
+              Width: 826
+             Height: 540
+           BitDepth: 24
+          ColorType: 'truecolor'
+    FormatSignature: ''
+    NumberOfSamples: 3
+       CodingMethod: 'Huffman'
+      CodingProcess: 'Sequential'
+            Comment: {}
