@@ -99,6 +99,21 @@ int main(){
     header.YThumbnail = buffer[19];
     printf("The XThumbnail: %d, and YThumbnail: %d\n", header.XThumbnail, header.YThumbnail);
 
+    int temp;
+    for(int i = 0; i<400; i++){
+        printf("%x\t", buffer[0+i]);
+        if(buffer[0+i]==0xff & buffer[1+i]==0xdb)  
+            temp = i;
+    }
+    printf("\n\n%x, %x\t",buffer[temp+4],buffer[temp+134]);
+
+    //0xffec and 0xffee: (APP1~APP15) Application-specific data
+    //0xffdb: quantization table
+    //0xffc0: start of frame, Indicates that this is a baseline DCT-based JPEG, and specifies the width, height, number of components, and component subsampling
+    //0xffc4: huffman table
+    //0xffda: start of scan
+    //0xffd9: end of file
+
     // terminate
     fclose(fp);
     free(buffer);
