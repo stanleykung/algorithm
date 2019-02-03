@@ -103,14 +103,16 @@ int main(){
     for(int i = 0; i<400; i++){
         printf("%x\t", buffer[0+i]);
         //find the quantization table part
-        if(buffer[0+i]==0xff & buffer[1+i]==0xdb)  
+        if(buffer[0+i]==0xff && buffer[1+i]==0xdb)  
             q_index = i;
         //find the SOF part
-        if(buffer[0+i]==0xff & buffer[1+i]==0xc0)  
+        if(buffer[0+i]==0xff && buffer[1+i]==0xc0)  
             SOF_index = i;
         //find the huffman table part
-        if(buffer[0+i]==0xff & buffer[1+i]==0xc4)  
+        if(buffer[0+i]==0xff && buffer[1+i]==0xc4)  
             h_index = i;
+        if(i%10==0)
+            printf("\n");
     }
     printf("\n\nQuantization Table\n");
 
@@ -143,6 +145,10 @@ int main(){
         if(count%8==0)
             printf("\n");
     }
+    /*  QT information(1 byte): here: index0 8 bits and index1 8 bits
+        bit 0..3: number of QT (0..3, otherwise error)
+        bit 4..7: precision of QT, 0 = 8 bit, otherwise 16 bit */
+
 
     printf("\n");
     printf("\nSOF information\n");
@@ -155,7 +161,7 @@ int main(){
     int image_height = buffer[SOF_index+5]*16*16+buffer[SOF_index+6];
     int image_width = buffer[SOF_index+7]*16*16+buffer[SOF_index+8];
     int Number_components = buffer[SOF_index+9];
-    printf("The Data precision of image: %d\n", buffer[SOF_index+4]);
+    printf("\nThe Data precision of image: %d\n", image_precision);
     printf("The Image height of image: %d\n", image_height);
     printf("The Image width of image: %d\n", image_width);
     printf("The Number of components in image: %d\n", Number_components);
@@ -169,11 +175,20 @@ int main(){
 
     //extract the Huffman Code Tables (DHT)
     int DHT_length = buffer[h_index+2]*16*16+buffer[h_index+3];
-    BYTE * DHT = malloc(sizeof(BYTE)*DHT_length);
+    BYTE * DHT = malloc(sizeof(BYTE)*(DHT_length+2));
+    //get HT information
+    int DHT_num = buffer[h_index+4] & 0x0f; //0000 1111
+    int DHT_type=(buffer[h_index+4] & 0x10) >> 4; //0001 0000
+    printf("The number of DHT %d and the type of DHT %d\n", DHT_num, DHT_type);//0 = DC table, 1 = AC table 
     for(int i = 0; i < DHT_length+2; i++){
         DHT[i] = buffer[h_index+i];
         printf("%x\t", DHT[i]);
+        if(i%10==0)
+            printf("\n");
     }
+    printf("\n");
+    for(int i = 0; i< 16; i++)
+        printf("There are %x of symbols with length of %d\n", buffer[h_index+5+i], i+1);
     printf("\n");
 
 
