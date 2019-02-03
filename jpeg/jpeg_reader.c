@@ -99,13 +99,84 @@ int main(){
     header.YThumbnail = buffer[19];
     printf("The XThumbnail: %d, and YThumbnail: %d\n", header.XThumbnail, header.YThumbnail);
 
-    int temp;
+    int q_index, h_index, SOF_index;
     for(int i = 0; i<400; i++){
         printf("%x\t", buffer[0+i]);
+        //find the quantization table part
         if(buffer[0+i]==0xff & buffer[1+i]==0xdb)  
-            temp = i;
+            q_index = i;
+        //find the SOF part
+        if(buffer[0+i]==0xff & buffer[1+i]==0xc0)  
+            SOF_index = i;
+        //find the huffman table part
+        if(buffer[0+i]==0xff & buffer[1+i]==0xc4)  
+            h_index = i;
     }
-    printf("\n\n%x, %x\t",buffer[temp+4],buffer[temp+134]);
+    printf("\n\nQuantization Table\n");
+
+    //extract the Quantization Table (DQT) with two table: index0 and index1
+    int QT_length = buffer[q_index+2]*16*16+buffer[q_index+3];
+    BYTE * QT = malloc(sizeof(BYTE)*QT_length);
+    for(int i = 0; i < 4; i++){
+        QT[i] = buffer[q_index+i];
+        printf("%x\t", QT[i]);
+    }
+    /*for(int i = 0, index = 0; i < DHT_length-2; i++){
+        index = i + 4;
+        QT[index] = buffer[q_index+index];
+        if(i%13==0)
+            printf("\n");
+        printf("%d\t", QT[index]);
+    }*/
+    int count = 0;
+    for(int i = 0, index = 0; i < QT_length-2; i++){
+        index = i + 4;
+        QT[index] = buffer[q_index+index];
+        if(i==1 || i == 66){
+            printf("\n");
+            count = 0;
+        }
+            
+        if(i>=1)
+            count++;
+        printf("%d\t", QT[index]);
+        if(count%8==0)
+            printf("\n");
+    }
+
+    printf("\n");
+    printf("\nSOF information\n");
+    //extract the SOF information
+    int SOF_length = buffer[SOF_index+2]*16*16+buffer[SOF_index+3];
+    for(int i = 0; i < SOF_length+2; i++){
+        printf("%x\t", buffer[SOF_index+i]);
+    }
+    int image_precision = buffer[SOF_index+4];
+    int image_height = buffer[SOF_index+5]*16*16+buffer[SOF_index+6];
+    int image_width = buffer[SOF_index+7]*16*16+buffer[SOF_index+8];
+    int Number_components = buffer[SOF_index+9];
+    printf("The Data precision of image: %d\n", buffer[SOF_index+4]);
+    printf("The Image height of image: %d\n", image_height);
+    printf("The Image width of image: %d\n", image_width);
+    printf("The Number of components in image: %d\n", Number_components);
+
+    /*  (component Id(1byte)(1 = Y, 2 = Cb, 3 = Cr, 4 = I, 5 = Q),
+        sampling factors (1byte) (bit 0-3 vertical., 4-7 horizontal.),
+        quantization table number (1 byte)). */
+
+    printf("\n");
+    printf("\nHuffman Table\n");
+
+    //extract the Huffman Code Tables (DHT)
+    int DHT_length = buffer[h_index+2]*16*16+buffer[h_index+3];
+    BYTE * DHT = malloc(sizeof(BYTE)*DHT_length);
+    for(int i = 0; i < DHT_length+2; i++){
+        DHT[i] = buffer[h_index+i];
+        printf("%x\t", DHT[i]);
+    }
+    printf("\n");
+
+
 
     //0xffec and 0xffee: (APP1~APP15) Application-specific data
     //0xffdb: quantization table
