@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.4.5)
+project( read_pixel_value )
+find_package( OpenCV REQUIRED )
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+add_executable( read_pixel_value read_pixel_value.cpp )
+target_link_libraries( read_pixel_value ${OpenCV_LIBS} )

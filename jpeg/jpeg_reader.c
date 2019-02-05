@@ -171,27 +171,63 @@ int main(){
         quantization table number (1 byte)). */
 
     printf("\n");
-    printf("\nHuffman Table\n");
+    printf("\nFull Huffman Table\n");
 
     //extract the Huffman Code Tables (DHT)
     int DHT_length = buffer[h_index+2]*16*16+buffer[h_index+3];
     BYTE * DHT = malloc(sizeof(BYTE)*(DHT_length+2));
     //get HT information
-    int DHT_num = buffer[h_index+4] & 0x0f; //0000 1111
-    int DHT_type=(buffer[h_index+4] & 0x10) >> 4; //0001 0000
-    printf("The number of DHT %d and the type of DHT %d\n", DHT_num, DHT_type);//0 = DC table, 1 = AC table 
+    int current_DHT_info = buffer[h_index+4];
+    int DHT_index = current_DHT_info & 0x0f;       //0000 1111
+    int DHT_type=(current_DHT_info & 0x10) >> 4; //0001 0000
+    int num_symbol[16];
+    int current;
     for(int i = 0; i < DHT_length+2; i++){
         DHT[i] = buffer[h_index+i];
         printf("%x\t", DHT[i]);
         if(i%10==0)
             printf("\n");
     }
+    printf("\n\nCurrent DHT:%x\n",current_DHT_info);
+    printf("The index of DHT %d and the type of DHT %d\n", DHT_index, DHT_type);//0 = DC table, 1 = AC table 
+    current=h_index+5;
+    for(int i = 0; i< 16; i++){
+        //printf("There are %x of symbols with length of %d\n", buffer[current+i], i+1);
+        num_symbol[i]=buffer[h_index+5+i];
+    }
+    current=current + 16;//point to symbols
     printf("\n");
+    for(int i = 0; i < 16; i++){
+        printf("Code Length: %d with %d symbols\n",i+1,num_symbol[i]);
+        for(int j = 0; j < num_symbol[i] ; j++){
+            printf("%x\t",buffer[current++]);
+            if(j==num_symbol[i]-1)
+                printf("\n");
+        }
+        
+    }
+
+    for(int x = 0; x <3; x++){
+    current_DHT_info = buffer[current];
+    DHT_index = current_DHT_info & 0x0f;       //0000 1111
+    DHT_type=(current_DHT_info & 0x10) >> 4; //0001 0000
+    printf("\n\nCurrent DHT:%x\n",current_DHT_info);
+    printf("The index of DHT %d and the type of DHT %d\n", DHT_index, DHT_type);//0 = DC table, 1 = AC table
+    current++;
     for(int i = 0; i< 16; i++)
-        printf("There are %x of symbols with length of %d\n", buffer[h_index+5+i], i+1);
+        num_symbol[i]=buffer[current+i];
+    current=current + 16;//point to symbols
     printf("\n");
-
-
+    for(int i = 0; i < 16; i++){
+        printf("Code Length: %d with %d symbols\n",i+1,num_symbol[i]);
+        for(int j = 0; j < num_symbol[i] ; j++){
+            printf("%x\t",buffer[current++]);
+            if(j==num_symbol[i]-1)
+                printf("\n");
+        }
+        
+    }
+    }
 
     //0xffec and 0xffee: (APP1~APP15) Application-specific data
     //0xffdb: quantization table
