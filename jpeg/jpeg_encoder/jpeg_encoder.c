@@ -2,30 +2,26 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define SIZE 1338120
+
 int main(){
-    char filename[]="test.txt";
+    char filename[]="ncku.txt";
+    int buffer[SIZE];
     FILE *fp;
     fp = fopen(filename,"r");
     if(fp == NULL){
         fputs ("File error",stderr); exit (1);
     }
-        
-    // obtain the file size
-    fseek (fp , 0 , SEEK_END); // move the  position indicator to the file end
-    int lSize = ftell (fp);
-    rewind(fp); // re-point the indicator to beginning of the file
-    printf("The file size of file: %d\n", lSize);
-
-    // allocate memory to contain the whole file:
-    char * buffer = malloc (sizeof(char)*lSize); //1338120
-    if (buffer == NULL){
-        fputs ("Memory error",stderr); exit (1);
-    }
 
     //read the whole file
-    fread(buffer,1,lSize,fp);
-    for(int i = 0; i < 100000; i++){
-        printf("%d, %c\t",i, buffer[i]);
+    int i=0;
+    while(fscanf (fp, "%d, ", &buffer[i++]) != EOF){
+        ;
     }
+    //fread(buffer,1,lSize,fp);
+    /*for(int i = SIZE-100; i < SIZE; i++){
+        printf("%d\t",buffer[i]);
+    }
+    printf("\n");*/
     return 0;
 }
