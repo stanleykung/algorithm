@@ -1,11 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
+
 
 #define WIDTH 826
 #define HEIGHT 540
 #define CHANNEL 3
 #define SIZE WIDTH*HEIGHT*CHANNEL
+#define PI 3.14159265358979323846
+
+float * create_dct_coefficients(float * array, int size){
+    for(int n=0;n<8;n++){
+		for(int m=0;m<8;m++){
+			array[n*8+m] = cos((1./16.)*(2*m+1)*PI/2*n);
+		}
+	}
+    return array;
+}
 
 int main(){
     //char filename[]=;
@@ -16,10 +28,10 @@ int main(){
     }
 
     float * buffer = malloc(sizeof(float)*SIZE);
-    float * R = malloc(sizeof(float)*WIDTH*HEIGHT);
+    /*float * R = malloc(sizeof(float)*WIDTH*HEIGHT);
     float * G = malloc(sizeof(float)*WIDTH*HEIGHT);
-    float * B = malloc(sizeof(float)*WIDTH*HEIGHT);
-    float * Y_ = malloc(sizeof(float)*WIDTH*HEIGHT);
+    float * B = malloc(sizeof(float)*WIDTH*HEIGHT);*/
+    float * Y  = malloc(sizeof(float)*WIDTH*HEIGHT);
     float * Cb = malloc(sizeof(float)*WIDTH*HEIGHT);
     float * Cr = malloc(sizeof(float)*WIDTH*HEIGHT);
 
@@ -34,6 +46,8 @@ int main(){
         printf("%f\t",buffer[i]);
     }
     printf("\n");*/
+
+    /*extract RGB channel data*/
     /*float * ptr; 
     for(int x=0; x < CHANNEL; x++){
         if(x==0)
@@ -53,7 +67,8 @@ int main(){
     /*RGB to YCbCr color space*/
     for(int j = 0; j < HEIGHT; j++){
         for(int i = 0; i < WIDTH; i++){
-            Y_[i+j*WIDTH]=   buffer[i+j*WIDTH+0*WIDTH*HEIGHT] * 0.299 //R
+            // follow ITU-R BT.601 (formerly CCIR 601)
+            Y[i+j*WIDTH] =   buffer[i+j*WIDTH+0*WIDTH*HEIGHT] * 0.299 //R
                             +buffer[i+j*WIDTH+1*WIDTH*HEIGHT] * 0.587 //G
                             +buffer[i+j*WIDTH+2*WIDTH*HEIGHT] * 0.114;//B
             Cb[i+j*WIDTH]=   buffer[i+j*WIDTH+0*WIDTH*HEIGHT] *(-0.168736) //R
@@ -62,8 +77,102 @@ int main(){
             Cr[i+j*WIDTH]=   buffer[i+j*WIDTH+0*WIDTH*HEIGHT] * 0.5      //R
                             +buffer[i+j*WIDTH+1*WIDTH*HEIGHT] * 0.418688 //G
                             +buffer[i+j*WIDTH+2*WIDTH*HEIGHT] * 0.081312;//B
+            //printf("%f, %d,%d,%d\t", Y[i+j*WIDTH],(int)buffer[i+j*WIDTH+0*WIDTH*HEIGHT],(int)buffer[i+j*WIDTH+1*WIDTH*HEIGHT],(int)buffer[i+j*WIDTH+2*WIDTH*HEIGHT]);
         }
     }
 
+    /*Chroma subsampling*/
+    int sampling_mode=0;
+    if(sampling_mode==0) // Full size
+        printf("The sampling mode: 4:4:4\n");
+    else if(sampling_mode==1){
+        printf("The sampling mode: 4:2:2\n");
+        /*NEED TO BE ADDED*/
+    }
+    else if(sampling_mode==2){
+        printf("The sampling mode: 4:2:0\n");
+        /*NEED TO BE ADDED*/
+    }
+
+    /*8x8 blocks splitting*/
+    int block_num_x = (WIDTH%8==0)?  (WIDTH/8)  : ((WIDTH/8)+1);
+    int block_num_y = (HEIGHT%8==0)? (HEIGHT/8) : ((HEIGHT/8)+1);
+    float current_block_Y[64];
+    float current_block_Cb[64];
+    float current_block_Cr[64];
+    long double current_dct_Y[64];
+    long double current_dct_Cb[64];
+    long double current_dct_Cr[64];
+    long double zeros[64]={0};
+    for(int y = 0; y < block_num_y; y++){
+        for(int x = 0; x < block_num_x; x++){
+            /*Within this part, the zeros padding and intensity shift will be also implemented.
+            The zeros padding is for filling the image with zeros so that the image can be divied
+            into 8*8 blocks. And, the intensity shift will shift the intensity range from [0,255]
+            to [-128,127].*/
+            //get the Y current block
+            count = 0;
+            memcpy(current_block_Y,zeros,sizeof(current_block_Y));
+            for(int j=y*8+0; j <= (y+1)*8-1 && j < HEIGHT; j++){
+                for(int i = x*8+0; i <= (x+1)*8-1 && i < WIDTH; i++){
+                    current_block_Y[count++] = Y[i+j*8]-128;
+                    //printf("%d, %f, %f\t", count, Y[i+j*8], current_block_Y[count-1]);
+                }
+            }
+            //get the Cb current block
+            count = 0;
+            memcpy(current_block_Cb,zeros,sizeof(current_block_Cb));
+            for(int j=y*8+0; j <= (y+1)*8-1 && j < HEIGHT; j++){
+                for(int i = x*8+0; i <= (x+1)*8-1 && i < WIDTH; i++){
+                    current_block_Cb[count++] = Cb[i+j*8]-128;
+                }
+            }
+            //get the Cr current block
+            count = 0;
+            memcpy(current_block_Cr,zeros,sizeof(current_block_Cr));
+            for(int j=y*8+0; j <= (y+1)*8-1 && j < HEIGHT; j++){
+                for(int i = x*8+0; i <= (x+1)*8-1 && i < WIDTH; i++){
+                    current_block_Cr[count++] = Cr[i+j*8]-128;
+                }
+            }
+
+            /*Discrete Cosine Transform*/
+            long double c_v, c_u, sum_Y, sum_Cb, sum_Cr;
+            for(int v = 0; v < 8; v ++){
+                c_v = (v==0)? 1./sqrt(2) : 1;
+                for(int u = 0; u < 8; u++){
+                    c_u = (u==0)? 1./sqrt(2) : 1;
+                    sum_Y =0;
+                    sum_Cb=0;
+                    sum_Cr=0;
+                    for(int j = 0; j < 8; j ++){
+                        for(int i = 0; i < 8; i++){
+                            sum_Y += current_block_Y[i+j*8] * cos((2*i+1)*u*PI / 16.) * cos((2*j+1)*v*PI / 16.);
+                            sum_Cb+= current_block_Cb[i+j*8] * cos((2*i+1)*u*PI / 16.) * cos((2*j+1)*v*PI / 16.);
+                            sum_Cr+= current_block_Cr[i+j*8] * cos((2*i+1)*u*PI / 16.) * cos((2*j+1)*v*PI / 16.);
+                        }
+                    }
+                    current_dct_Y[v*8+u] = 0.25*c_u*c_v*sum_Y;
+                    current_dct_Cb[v*8+u]= 0.25*c_u*c_v*sum_Cb;
+                    current_dct_Cr[v*8+u]= 0.25*c_u*c_v*sum_Cr;
+                }
+            }
+
+            printf("========\n%d, %d\n", x, y);
+            /*for(int i = 0; i < 8; i++){
+                for(int j = 0; j < 8; j++){
+                    printf("%f\t", current_block_Y[j*8+i]);
+                }
+                printf("\n");
+            }*/
+
+            for(int v = 0; v < 8; v ++){
+                for(int u = 0; u < 8; u++){
+                    printf("%Lf\t", current_dct_Y[v*8+u]);
+                }
+                printf("\n\n");
+            }
+        }
+    }
     return 0;
 }
