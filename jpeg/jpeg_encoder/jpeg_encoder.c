@@ -199,18 +199,21 @@ int main(){
                 q_Y[i]  = round(current_dct_Y[i] / LDQT[i]);
                 q_Cb[i] = round(current_dct_Cb[i]/ CDQT[i]);
                 q_Cr[i] = round(current_dct_Cr[i]/ CDQT[i]);
+                if(q_Y[i]==0) q_Y[i]=0; // remove minus zeros
+                if(q_Cb[i]==0) q_Cb[i]=0;
+                if(q_Cr[i]==0) q_Cr[i]=0;
             }
-            /*printf("========\n%d, %d\n", x, y);
+            printf("========\n%d, %d\n", x, y);
             for(int v = 0; v < 8; v ++){
                 for(int u = 0; u < 8; u++){
                     printf("%Lf\t", q_Y[v*8+u]);
                 }
                 printf("\n\n");
-            }*/
+            }
 
             /*Entropy coding*/
             //Zig-Zag Ordering Scaning
-            count = 0;
+            int count1 = 0, count2 = 0, count3 = 3;
             int flag = 1;
             long double Z_Y[64];
             long double Z_Cb[64];
@@ -218,16 +221,35 @@ int main(){
             for(int i = 0; i < 8; i++){
                 flag = flag*(-1); //change the direction
                 for(int j = i; j >=0 ; j--){
-                    Z_Y[count++] = (flag > 0)? q_Y[j+(i-j)*8] : q_Y[j*8+(i-j)]; //7: dpwn
+                    Z_Y[count1++] = (flag > 0)? q_Y[j+(i-j)*8] : q_Y[j*8+(i-j)]; //7: dpwn
+                    Z_Cb[count2++] = (flag > 0)? q_Cb[j+(i-j)*8] : q_Cb[j*8+(i-j)];
+                    Z_Cr[count3++] = (flag > 0)? q_Cr[j+(i-j)*8] : q_Cr[j*8+(i-j)];
                 }
             }
             //(0,7)->(1,7)->(2,6)
             for(int i = 8; i<=14; i++){
                 flag = flag*(-1); //change the direction
                 for(int j = i-7; j <= 7 ; j++){
-                    Z_Y[count++] = (flag > 0)? q_Y[j+(i-j)*8] : q_Y[j*8+(i-j)]; //8: up
+                    Z_Y[count1++] = (flag > 0)? q_Y[j*8+(i-j)] : q_Y[j+(i-j)*8]; //8: up
+                    Z_Cb[count2++] = (flag > 0)? q_Cb[j*8+(i-j)] : q_Cb[j+(i-j)*8];
+                    Z_Cr[count3++] = (flag > 0)? q_Cr[j*8+(i-j)] : q_Cr[j+(i-j)*8];
                 }
             }
+
+            printf("========\n%d, %d\n", x, y);
+            for(int v = 0; v < 8; v ++){
+                for(int u = 0; u < 8; u++){
+                    printf("%Lf\t", Z_Y[v*8+u]);
+                }
+                printf("\n\n");
+            }
+
+            // DPCM (Differential Pulse Code Modulation) for DC value
+            /*Encode the difference from the DC component of previous 8×8 block*/
+
+            // Run Length Encoding (RLE) for AC coefficients
+
+            // Huffman coding
         }
     }
     return 0;
