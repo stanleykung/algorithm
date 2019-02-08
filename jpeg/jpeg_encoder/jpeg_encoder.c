@@ -258,7 +258,7 @@ int main(){
             all_DC_Cr[y*block_num_x+x] = Z_Cr[0];//- all_difference_DC_Cr[y*block_num_x+x-1];
             //printf("%Lf\t",Z_Y[0]);
 
-            /*Run Length Encoding (RLE) for AC coefficients*/
+            /*Run Length (Level) Encoding (RLE) for AC coefficients*/
             /*conversion of the quantized DCT coefficients into an intermediate sequence of symbols
               and assignment of variable-length codes to the symbols.*/
             /* Intermediate entropy coding representations: 
@@ -270,9 +270,12 @@ int main(){
 
 
             // Huffman coding
+            /*symbol1(run+size)->categroy(based on table p.149)->Huffman Code*/
         }
     }
     
+    
+    /*Coding of DC Coefficients*/
     //printf("\n\nDC Difference:\n");
     for(int i = 0; i < block_num_y; i++){
         for(int j = 0; j < block_num_x; j++){
@@ -290,7 +293,8 @@ int main(){
         }
         //printf("\n");
     }
-
+    // coversion DC difference to codeword
+    /*difference->categroy(based on table p.149)->Huffman Code+index code*/
     free(buffer);
     free(Y);
     free(Cb);
