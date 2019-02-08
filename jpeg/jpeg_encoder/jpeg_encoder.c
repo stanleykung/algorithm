@@ -10,19 +10,10 @@
 #define SIZE WIDTH*HEIGHT*CHANNEL
 #define PI 3.14159265358979323846
 
-float * create_dct_coefficients(float * array, int size){
-    for(int n=0;n<8;n++){
-		for(int m=0;m<8;m++){
-			array[n*8+m] = cos((1./16.)*(2*m+1)*PI/2*n);
-		}
-	}
-    return array;
-}
-
 int main(){
     //char filename[]=;
     FILE *fp;
-    fp = fopen("/home/kungdehan/program_practice/github/algorithm/jpeg/jpeg_encoder/ncku.txt","r");
+    fp = fopen("ncku.txt","r");
     if(fp == NULL){
         fputs ("File error",stderr); exit (1);
     }
@@ -104,6 +95,18 @@ int main(){
     long double current_dct_Cb[64];
     long double current_dct_Cr[64];
     long double zeros[64]={0};
+    long double * all_DC_Y;
+    long double * all_DC_Cb;
+    long double * all_DC_Cr;
+    long double * all_difference_DC_Y;
+    long double * all_difference_DC_Cb;
+    long double * all_difference_DC_Cr;
+    all_DC_Y  = calloc(block_num_y * block_num_x, sizeof(long double)); //initialize with zeros
+    all_DC_Cb = calloc(block_num_y * block_num_x, sizeof(long double));
+    all_DC_Cr = calloc(block_num_y * block_num_x, sizeof(long double));
+    all_difference_DC_Y  = calloc(block_num_y * block_num_x, sizeof(long double)); //initialize with zeros
+    all_difference_DC_Cb = calloc(block_num_y * block_num_x, sizeof(long double));
+    all_difference_DC_Cr = calloc(block_num_y * block_num_x, sizeof(long double));
     for(int y = 0; y < block_num_y; y++){
         for(int x = 0; x < block_num_x; x++){
             /*Within this part, the zeros padding and intensity shift will be also implemented.
@@ -203,17 +206,17 @@ int main(){
                 if(q_Cb[i]==0) q_Cb[i]=0;
                 if(q_Cr[i]==0) q_Cr[i]=0;
             }
-            printf("========\n%d, %d\n", x, y);
+            /*printf("========\n%d, %d\n", x, y);
             for(int v = 0; v < 8; v ++){
                 for(int u = 0; u < 8; u++){
                     printf("%Lf\t", q_Y[v*8+u]);
                 }
                 printf("\n\n");
-            }
+            }*/
 
             /*Entropy coding*/
             //Zig-Zag Ordering Scaning
-            int count1 = 0, count2 = 0, count3 = 3;
+            int count1 = 0, count2 = 0, count3 = 0;
             int flag = 1;
             long double Z_Y[64];
             long double Z_Cb[64];
@@ -236,21 +239,52 @@ int main(){
                 }
             }
 
-            printf("========\n%d, %d\n", x, y);
+            /*printf("========\n%d, %d\n", x, y);
             for(int v = 0; v < 8; v ++){
                 for(int u = 0; u < 8; u++){
                     printf("%Lf\t", Z_Y[v*8+u]);
                 }
                 printf("\n\n");
-            }
+            }*/
 
             // DPCM (Differential Pulse Code Modulation) for DC value
             /*Encode the difference from the DC component of previous 8×8 block*/
+            //printf("%d, %d\n", y, x);
+            all_DC_Y[y*block_num_x+x]  = Z_Y[0]; //- all_difference_DC_Y[y*block_num_x+x-1];
+            all_DC_Cb[y*block_num_x+x] = Z_Cb[0];//- all_difference_DC_Cb[y*block_num_x+x-1];
+            all_DC_Cr[y*block_num_x+x] = Z_Cr[0];//- all_difference_DC_Cr[y*block_num_x+x-1];
 
+            printf("%Lf\t",Z_Y[0]);
             // Run Length Encoding (RLE) for AC coefficients
 
             // Huffman coding
         }
     }
+    
+    printf("\n\nDC Difference:\n");
+    for(int i = 0; i < block_num_y; i++){
+        for(int j = 0; j < block_num_x; j++){
+            if(i==0 && j==0){
+                all_difference_DC_Y[i*block_num_x+j] = all_DC_Y[i*block_num_x+j];
+                all_difference_DC_Cb[i*block_num_x+j] = all_DC_Cb[i*block_num_x+j];
+                all_difference_DC_Cr[i*block_num_x+j] = all_DC_Cr[i*block_num_x+j];
+            }
+            else{
+                all_difference_DC_Y[i*block_num_x+j] = all_DC_Y[i*block_num_x+j]-all_DC_Y[i*block_num_x+j-1];
+                all_difference_DC_Cb[i*block_num_x+j] = all_DC_Cb[i*block_num_x+j]-all_DC_Cb[i*block_num_x+j-1];
+                all_difference_DC_Cr[i*block_num_x+j] = all_DC_Cr[i*block_num_x+j]-all_DC_Cr[i*block_num_x+j-1];
+            }
+            printf("%Lf\t", all_difference_DC_Y[i*block_num_x+j]);
+        }
+        printf("\n");
+    }
+
+    free(buffer);
+    free(Y);
+    free(Cb);
+    free(Cr);
+    free(all_difference_DC_Y);
+    free(all_difference_DC_Cb);
+    free(all_difference_DC_Cr);
     return 0;
 }
