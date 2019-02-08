@@ -55,6 +55,9 @@ int main(){
         }
     }*/
 
+    /*JPEG mode*/
+    printf("This is Baseline Sequential mode\n");
+
     /*RGB to YCbCr color space*/
     for(int j = 0; j < HEIGHT; j++){
         for(int i = 0; i < WIDTH; i++){
@@ -239,29 +242,38 @@ int main(){
                 }
             }
 
-            /*printf("========\n%d, %d\n", x, y);
+            printf("========\n%d, %d\n", x, y);
             for(int v = 0; v < 8; v ++){
                 for(int u = 0; u < 8; u++){
                     printf("%Lf\t", Z_Y[v*8+u]);
                 }
                 printf("\n\n");
-            }*/
+            }
 
-            // DPCM (Differential Pulse Code Modulation) for DC value
-            /*Encode the difference from the DC component of previous 8×8 block*/
+            /* DPCM (Differential Pulse Code Modulation) for DC value*/
+            //Encode the difference from the DC component of previous 8×8 block
             //printf("%d, %d\n", y, x);
             all_DC_Y[y*block_num_x+x]  = Z_Y[0]; //- all_difference_DC_Y[y*block_num_x+x-1];
             all_DC_Cb[y*block_num_x+x] = Z_Cb[0];//- all_difference_DC_Cb[y*block_num_x+x-1];
             all_DC_Cr[y*block_num_x+x] = Z_Cr[0];//- all_difference_DC_Cr[y*block_num_x+x-1];
+            //printf("%Lf\t",Z_Y[0]);
 
-            printf("%Lf\t",Z_Y[0]);
-            // Run Length Encoding (RLE) for AC coefficients
+            /*Run Length Encoding (RLE) for AC coefficients*/
+            /*conversion of the quantized DCT coefficients into an intermediate sequence of symbols
+              and assignment of variable-length codes to the symbols.*/
+            /* Intermediate entropy coding representations: 
+                1). runlength (4 bits): consecutive number of "zeros" AC, 
+                2). size (4bits): number of bits to encode AMPLITUDE
+                3). amplitude: the non-zero AC 
+               (15,0) is 16 zeros at most 3 times. (48 zeros)
+               ( 0,0) is the end of block. */
+
 
             // Huffman coding
         }
     }
     
-    printf("\n\nDC Difference:\n");
+    //printf("\n\nDC Difference:\n");
     for(int i = 0; i < block_num_y; i++){
         for(int j = 0; j < block_num_x; j++){
             if(i==0 && j==0){
@@ -274,9 +286,9 @@ int main(){
                 all_difference_DC_Cb[i*block_num_x+j] = all_DC_Cb[i*block_num_x+j]-all_DC_Cb[i*block_num_x+j-1];
                 all_difference_DC_Cr[i*block_num_x+j] = all_DC_Cr[i*block_num_x+j]-all_DC_Cr[i*block_num_x+j-1];
             }
-            printf("%Lf\t", all_difference_DC_Y[i*block_num_x+j]);
+            //printf("%Lf\t", all_difference_DC_Y[i*block_num_x+j]);
         }
-        printf("\n");
+        //printf("\n");
     }
 
     free(buffer);
