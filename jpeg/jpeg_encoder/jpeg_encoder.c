@@ -262,15 +262,20 @@ int main(){
             /*conversion of the quantized DCT coefficients into an intermediate sequence of symbols
               and assignment of variable-length codes to the symbols.*/
             /* Intermediate entropy coding representations: 
+                ---SYMBOL1---
                 1). runlength (4 bits): consecutive number of "zeros" AC, 
                 2). size (4bits): number of bits to encode AMPLITUDE
+                ---SYMBOL2---
                 3). amplitude: the non-zero AC 
                (15,0) is 16 zeros at most 3 times. (48 zeros)
                ( 0,0) is the end of block. */
 
 
             // Huffman coding
-            /*symbol1(run+size)->categroy(based on table p.149)->Huffman Code*/
+            /*symbol1(run+size->catergory)->categroy(based on table p.149)->Huffman Codeword*/
+            /*symbol1 is encoded with variable-length code (VLC) from Huffman table
+              symbol2 is encoded with variable-length integer (VLI) code = Amplitude (index code,the position in cater)*/
+            printf("Use the default Huffman table\n");
         }
     }
     
@@ -293,8 +298,11 @@ int main(){
         }
         //printf("\n");
     }
-    // coversion DC difference to codeword
-    /*difference->categroy(based on table p.149)->Huffman Code+index code*/
+
+    // coversion DC difference to codeword (Lookup the Huffman table)
+    /*difference->SIZE=>categroy(based on table p.149)->
+      Huffman Code(category,VLC,symbol1)+index code(the position in cater,VLI,symbol2)*/
+
     free(buffer);
     free(Y);
     free(Cb);
