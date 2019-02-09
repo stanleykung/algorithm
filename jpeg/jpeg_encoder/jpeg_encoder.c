@@ -35,8 +35,8 @@ const char * luminance_DC_Huff[12]={"00","010","011","100","101","110","1110","1
 // Chrominance DC coefficient differences
 const char * chrominance_DC_Huff[12]={"00","01","10","110","1110","11110","111110","1111110","11111110","111111110","1111111110","11111111110"};
 // Luminance AC coefficients
-const char * luminance_AC_Huff[162]={
-    "1010","00","01","100","1011","11010","1111000","11111000","1111110110","1111111110000010","1111111110000011",
+char * luminance_AC_Huff[162]={
+    "00","01","100","1011","11010","1111000","11111000","1111110110","1111111110000010","1111111110000011",
     "1100","11011","1111001","111110110","11111110110","1111111110000100","1111111110000101","1111111110000110","1111111110000111","1111111110001000",
     "11100","11111001","1111110111","111111110100","1111111110001001","1111111110001010","1111111110001011","1111111110001100","1111111110001101","1111111110001110",
     "111010","111110111","111111110101","1111111110001111","1111111110010000","1111111110010001","1111111110010010","1111111110010011","1111111110010100","1111111110010101",
@@ -51,8 +51,25 @@ const char * luminance_AC_Huff[162]={
     "1111111010","1111111111011001","1111111111011010","1111111111011011","1111111111011100","1111111111011101","1111111111011110","1111111111011111","1111111111100000","1111111111100001",
     "11111111000","1111111111100010","1111111111100011","1111111111100100","1111111111100101","1111111111100110","1111111111100111","1111111111101000","1111111111101001","1111111111101010",
     "1111111111101011","1111111111101100","1111111111101101","1111111111101110","1111111111101111","1111111111110000","1111111111110001","1111111111110010","1111111111110011","1111111111110100",
-    "11111111001","1111111111110101","1111111111110110","1111111111110111","1111111111111000","1111111111111001","1111111111111010","1111111111111011","1111111111111100","1111111111111101","1111111111111110"
+    "1111111111110101","1111111111110110","1111111111110111","1111111111111000","1111111111111001","1111111111111010","1111111111111011","1111111111111100","1111111111111101","1111111111111110"
 };
+
+struct STACK
+{
+    int data[10];
+    int top;
+};
+typedef struct STACK stack;
+
+void push(stack * s, int val){
+    s->data[s->top++] = val;
+}
+
+int pop(stack * s){
+    int temp = s->data[s->top-1];
+    s->top = s->top -1;
+    return temp;
+}
 
 struct linked_list{
     int runlength;
@@ -104,7 +121,43 @@ void print_list(RLE * list){
 
 int RLE_codeword(RLE* list, int * array, int length){
     int num = 0; // number of codeword in array
+    int cur_index;
+    RLE * current = list;
+    char * temp;
+    while(current){
+        // get the index of huffman table for codeword
+        if(current->runlength == 0 && current->size ==0)
+            temp = "1010";
+        else if(current->runlength == 15 && current->size ==0)
+            temp = "11111111001";
+        else{
+            cur_index = current->runlength*10 + current->size;
+            temp = luminance_AC_Huff[cur_index-1];
+        }
+        // store the codeword into array
+        int code;
+        // symbol-1
+        for(int i = 0; i < strlen(temp); i++){
+            code = (int)(temp[i] - '0');
+            array[num++] = code;
+            if(num>=length)
+                printf("The space is not enough\n");
+        }
+        //symbol-2, conversion from the decimal to binary
+        int x = current->amplitude;
+        stack s;
+        s.top=0;
+        while(x > 0){    
+            push(&s,x % 2);
+            x = x /2;
+        }
+        int end = s.top;
+        for(int i = 0; i < end; i++)
+            array[num++] = pop(&s);
 
+        // move to next node in RLE
+        current = current->next;
+    }
     return num;
 }
 
@@ -338,13 +391,13 @@ int main(){
                 }
             }
 
-            printf("========\n%d, %d\n", x, y);
+            /*printf("========\n%d, %d\n", x, y);
             for(int v = 0; v < 8; v ++){
                 for(int u = 0; u < 8; u++){
                     printf("%Lf\t", Z_Y[v*8+u]);
                 }
                 printf("\n\n");
-            }
+            }*/
 
             /* DPCM (Differential Pulse Code Modulation) for DC value*/
             //Encode the difference from the DC component of previous 8×8 block
@@ -402,7 +455,7 @@ int main(){
                 }
             }
             list = add_bottom(list, 0,0,0);
-            printf("========\nRLE\n");
+            printf("\n========\nRLE\n");
             print_list(list);
             printf("\n");
 
@@ -410,8 +463,12 @@ int main(){
             /*symbol1(run+size->catergory)->categroy(based on table p.149)->Huffman Codeword*/
             /*symbol1 is encoded with variable-length code (VLC) from Huffman table (at most 16 bits)
               symbol2 is encoded with variable-length integer (VLI) code = Amplitude (index code,the position in cater) (at most 10 bits) */
-            /*int codeword[1700]={0}; // 63*(16+10) = 1638
-            num_code = RLE_codeword(list,codeword,1700);*/
+            int codeword[1700]={0}; // 63*(16+10) = 1638
+            num_code = RLE_codeword(list,codeword,1700);
+            printf("========\nCodeword\n");
+            for(int i = 0; i< num_code; i++){
+                printf("%d ", codeword[i]);
+            }
 
             delete_list(list);
         }
