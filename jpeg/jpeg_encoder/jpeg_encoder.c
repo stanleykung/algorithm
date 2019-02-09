@@ -10,6 +10,119 @@
 #define SIZE WIDTH*HEIGHT*CHANNEL
 #define PI 3.14159265358979323846
 
+// Luminance Quantization Table
+double LDQT[64] = { 16, 11, 10, 16, 24, 40, 51, 61,
+                    12, 12, 14, 19, 26, 58, 60, 55,
+                    14, 13, 16, 24, 40, 57, 69, 56,
+                    14, 17, 22, 29, 51, 87, 80, 62,
+                    18, 22, 37, 56, 68,109,103, 77,
+                    24, 35, 55, 64, 81,104,113, 92,
+                    49, 64, 78, 87,103,121,120,101,
+                    72, 92, 95, 98,112,100,103, 99};
+// Chrominance Quantization Table
+double CDQT[64] = { 17, 18, 24, 47, 99, 99, 99, 99,
+                    18, 21, 26, 66, 99, 99, 99, 99,
+                    24, 26, 56, 99, 99, 99, 99, 99,
+                    47, 66, 99, 99, 99, 99, 99, 99,
+                    99, 99, 99, 99, 99, 99, 99, 99,
+                    99, 99, 99, 99, 99, 99, 99, 99,
+                    99, 99, 99, 99, 99, 99, 99, 99,
+                    99, 99, 99, 99, 99, 99, 99, 99,};
+
+// Typical Huffman tables
+// Luminance DC coefficient differences
+const char * luminance_DC_Huff[12]={"00","010","011","100","101","110","1110","11110","111110","1111110","11111110","111111110"};
+// Chrominance DC coefficient differences
+const char * chrominance_DC_Huff[12]={"00","01","10","110","1110","11110","111110","1111110","11111110","111111110","1111111110","11111111110"};
+// Luminance AC coefficients
+const char * luminance_AC_Huff[162]={
+    "1010","00","01","100","1011","11010","1111000","11111000","1111110110","1111111110000010","1111111110000011",
+    "1100","11011","1111001","111110110","11111110110","1111111110000100","1111111110000101","1111111110000110","1111111110000111","1111111110001000",
+    "11100","11111001","1111110111","111111110100","1111111110001001","1111111110001010","1111111110001011","1111111110001100","1111111110001101","1111111110001110",
+    "111010","111110111","111111110101","1111111110001111","1111111110010000","1111111110010001","1111111110010010","1111111110010011","1111111110010100","1111111110010101",
+    "111011","1111111000","1111111110010110","1111111110010111","1111111110011000","1111111110011001","1111111110011010","1111111110011011","1111111110011100","1111111110011101",
+    "1111010","11111110111","1111111110011110","1111111110011111","1111111110100000","1111111110100001","1111111110100010","1111111110100011","1111111110100100","1111111110100101",
+    "1111011","111111110110","1111111110100110","1111111110100111","1111111110101000","1111111110101001","1111111110101010","1111111110101011","1111111110101100","1111111110101101",
+    "11111010","111111110111","1111111110101110","1111111110101111","1111111110110000","1111111110110001","1111111110110010","1111111110110011","1111111110110100","1111111110110101",
+    "111111000","111111111000000","1111111110110110","1111111110110111","1111111110111000","1111111110111001","1111111110111010","1111111110111011","1111111110111100","1111111110111101",
+    "111111001","1111111110111110","1111111110111111","1111111111000000","1111111111000001","1111111111000010","1111111111000011","1111111111000100","1111111111000101","1111111111000110",
+    "111111010","1111111111000111","1111111111001000","1111111111001001","1111111111001010","1111111111001011","1111111111001100","1111111111001101","1111111111001110","1111111111001111",
+    "1111111001","1111111111010000","1111111111010001","1111111111010010","1111111111010011","1111111111010100","1111111111010101","1111111111010110","1111111111010111","1111111111011000",
+    "1111111010","1111111111011001","1111111111011010","1111111111011011","1111111111011100","1111111111011101","1111111111011110","1111111111011111","1111111111100000","1111111111100001",
+    "11111111000","1111111111100010","1111111111100011","1111111111100100","1111111111100101","1111111111100110","1111111111100111","1111111111101000","1111111111101001","1111111111101010",
+    "1111111111101011","1111111111101100","1111111111101101","1111111111101110","1111111111101111","1111111111110000","1111111111110001","1111111111110010","1111111111110011","1111111111110100",
+    "11111111001","1111111111110101","1111111111110110","1111111111110111","1111111111111000","1111111111111001","1111111111111010","1111111111111011","1111111111111100","1111111111111101","1111111111111110"
+};
+
+struct linked_list{
+    int runlength;
+    int size;
+    int amplitude;
+    struct linked_list * next;
+};
+typedef struct linked_list RLE;
+
+RLE * add_bottom(RLE * list, int run, int s, int am){
+    if(list==NULL){
+        list = malloc(sizeof(RLE));
+        list->runlength = run;
+        list->size = s;
+        list->amplitude = am;
+        list->next = NULL;
+    }
+    else{
+        RLE * current = list;
+        while(current->next){
+            current=current->next;
+        }
+        current->next = malloc(sizeof(RLE));
+        current->next->runlength = run;
+        current->next->size = s;
+        current->next->amplitude = am;
+        current->next->next = NULL;
+    }
+    return list;    
+}
+
+void delete_list(RLE * list){
+    RLE * temp;
+    RLE * current = list;
+    while(current->next){
+        temp = current;
+        current = current->next;
+        free(temp);
+    }
+}
+
+void print_list(RLE * list){
+    RLE * current = list;
+    while(current){
+        printf("(%d,%d),%d ", current->runlength, current->size, current->amplitude);
+        current = current->next;
+    }
+}
+
+int RLE_codeword(RLE* list, int * array, int length){
+    int num = 0; // number of codeword in array
+
+    return num;
+}
+
+int cal_size(long double val){
+    long double abs_ = fabsl(val);
+    int s = 1;
+    int count = 1;
+    while(1){
+        if(s*2-1 >= abs_ && s <= abs_){
+            return count;
+        }
+        else{
+            s*=2;
+            count++;
+        }
+    }
+}
+
 int main(){
     //char filename[]=;
     FILE *fp;
@@ -110,6 +223,7 @@ int main(){
     all_difference_DC_Y  = calloc(block_num_y * block_num_x, sizeof(long double)); //initialize with zeros
     all_difference_DC_Cb = calloc(block_num_y * block_num_x, sizeof(long double));
     all_difference_DC_Cr = calloc(block_num_y * block_num_x, sizeof(long double));
+    int runlength, size, amplitude, end_of_block, num_code;
     for(int y = 0; y < block_num_y; y++){
         for(int x = 0; x < block_num_x; x++){
             /*Within this part, the zeros padding and intensity shift will be also implemented.
@@ -180,27 +294,9 @@ int main(){
             }*/
 
             /*Quantization*/
-            // Luminance Quantization Table
             long double q_Y[64];
             long double q_Cb[64];
             long double q_Cr[64];
-            double LDQT[64] = {16, 11, 10, 16, 24, 40, 51, 61,
-                               12, 12, 14, 19, 26, 58, 60, 55,
-                               14, 13, 16, 24, 40, 57, 69, 56,
-                               14, 17, 22, 29, 51, 87, 80, 62,
-                               18, 22, 37, 56, 68,109,103, 77,
-                               24, 35, 55, 64, 81,104,113, 92,
-                               49, 64, 78, 87,103,121,120,101,
-                               72, 92, 95, 98,112,100,103, 99};
-            //Chrominance Quantization Table
-            double CDQT[64] = {17, 18, 24, 47, 99, 99, 99, 99,
-                               18, 21, 26, 66, 99, 99, 99, 99,
-                               24, 26, 56, 99, 99, 99, 99, 99,
-                               47, 66, 99, 99, 99, 99, 99, 99,
-                               99, 99, 99, 99, 99, 99, 99, 99,
-                               99, 99, 99, 99, 99, 99, 99, 99,
-                               99, 99, 99, 99, 99, 99, 99, 99,
-                               99, 99, 99, 99, 99, 99, 99, 99,};
             for(int i=0; i< 64; i++){
                 q_Y[i]  = round(current_dct_Y[i] / LDQT[i]);
                 q_Cb[i] = round(current_dct_Cb[i]/ CDQT[i]);
@@ -269,19 +365,62 @@ int main(){
                 3). amplitude: the non-zero AC 
                (15,0) is 16 zeros at most 3 times. (48 zeros)
                ( 0,0) is the end of block. */
-
+            runlength = 0;
+            size = 0;
+            amplitude = 0;
+            end_of_block = 63;
+            RLE * list = NULL;
+            // find the end of block (find the first non-zero coefficients from end to beginning.)
+            for(int i = 63; i >=1; i--){
+                if(Z_Y[i]==0){
+                    if(i==1){
+                        end_of_block=1;
+                    }
+                    continue;
+                }
+                else
+                {
+                    end_of_block = i;
+                    break;
+                }
+            }
+            // calculate the symbol-1 and symbol-2 and add into the linked list
+            for(int i = 1; i <= end_of_block; i++) { // Only AD coefficients
+                if(Z_Y[i]==0){
+                    if(runlength==15){ // add the current zero, there 16 zeros => send (15,0)
+                        list = add_bottom(list, 15, 0, 0);
+                        runlength = 0;
+                    }
+                    else
+                        runlength++;
+                }
+                else{
+                    size = cal_size(Z_Y[i]);
+                    amplitude = (Z_Y[i] < 0)? Z_Y[i] - (-1)*pow(2,size) -1 : pow(2,size-1) + (Z_Y[i] - pow(2,size-1));
+                    list = add_bottom(list,runlength,size,amplitude);
+                    runlength = 0;
+                }
+            }
+            list = add_bottom(list, 0,0,0);
+            printf("========\nRLE\n");
+            print_list(list);
+            printf("\n");
 
             // Huffman coding
             /*symbol1(run+size->catergory)->categroy(based on table p.149)->Huffman Codeword*/
-            /*symbol1 is encoded with variable-length code (VLC) from Huffman table
-              symbol2 is encoded with variable-length integer (VLI) code = Amplitude (index code,the position in cater)*/
-            printf("Use the default Huffman table\n");
+            /*symbol1 is encoded with variable-length code (VLC) from Huffman table (at most 16 bits)
+              symbol2 is encoded with variable-length integer (VLI) code = Amplitude (index code,the position in cater) (at most 10 bits) */
+            /*int codeword[1700]={0}; // 63*(16+10) = 1638
+            num_code = RLE_codeword(list,codeword,1700);*/
+
+            delete_list(list);
         }
     }
     
     
     /*Coding of DC Coefficients*/
-    //printf("\n\nDC Difference:\n");
+    printf("\n\nDC Difference:\n");
+    printf("Use the default Huffman table\n");
     for(int i = 0; i < block_num_y; i++){
         for(int j = 0; j < block_num_x; j++){
             if(i==0 && j==0){
