@@ -56,7 +56,7 @@ int main(){
 
 
     printf("\n\n\n");
-    int amplitude = 14;
+    int amplitude = 1;
     int array[10]={0};
     int num=0;
     int y, begin=0;

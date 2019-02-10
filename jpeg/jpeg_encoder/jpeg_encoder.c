@@ -31,9 +31,9 @@ double CDQT[64] = { 17, 18, 24, 47, 99, 99, 99, 99,
 
 // Typical Huffman tables
 // Luminance DC coefficient differences
-const char * luminance_DC_Huff[12]={"00","010","011","100","101","110","1110","11110","111110","1111110","11111110","111111110"};
+char * luminance_DC_Huff[12]={"00","010","011","100","101","110","1110","11110","111110","1111110","11111110","111111110"};
 // Chrominance DC coefficient differences
-const char * chrominance_DC_Huff[12]={"00","01","10","110","1110","11110","111110","1111110","11111110","111111110","1111111110","11111111110"};
+char * chrominance_DC_Huff[12]={"00","01","10","110","1110","11110","111110","1111110","11111110","111111110","1111111110","11111111110"};
 // Luminance AC coefficients
 char * luminance_AC_Huff[162]={
     "00","01","100","1011","11010","1111000","11111000","1111110110","1111111110000010","1111111110000011",
@@ -119,6 +119,23 @@ void print_list(RLE * list){
     }
 }
 
+int cal_size(long double val){
+    long double abs_ = fabsl(val);
+    int s = 1;
+    int count = 1;
+    if(val == 0) // for DC difference
+        return 0;
+    while(1){
+        if(s*2-1 >= abs_ && s <= abs_){
+            return count;
+        }
+        else{
+            s*=2;
+            count++;
+        }
+    }
+}
+
 int RLE_codeword(RLE* list, int * array, int length){
     int num = 0; // number of codeword in array
     int cur_index;
@@ -161,19 +178,45 @@ int RLE_codeword(RLE* list, int * array, int length){
     return num;
 }
 
-int cal_size(long double val){
-    long double abs_ = fabsl(val);
-    int s = 1;
-    int count = 1;
-    while(1){
-        if(s*2-1 >= abs_ && s <= abs_){
-            return count;
-        }
-        else{
-            s*=2;
-            count++;
+int DC_codeword(long double * iarray, int y, int x, int * oarray, int length){ // conversion the DC difference to codeword by lookup the huffman table
+    int num = 0, size, amplitude, code;
+    char * temp;
+    long double current_value;
+    for(int i = 0; i < y; i++){
+        for(int j = 0; j < x; j++){
+            current_value = iarray[i*x+j];
+            size = cal_size(current_value);
+            amplitude = (current_value < 0)? current_value - (-1)*pow(2,size) -1 : pow(2,size-1) + (current_value - pow(2,size-1));
+            // get the codeword for symbol-1 by looking up the table
+            if(size>=0 && size<=11){
+                temp = luminance_DC_Huff[size];
+                for(int m = 0; m < strlen(temp); m++){
+                    code = (int)(temp[m] - '0');
+                    oarray[num++] = code;
+                    if(num>=length)
+                        printf("The space is not enough\n");
+                }
+            }
+            else{
+                printf("The size of DC difference is over the standard range\n");
+            }
+            // add the codeword of symbol-2
+            int x = amplitude;
+            stack s;
+            s.top=0;
+            while(x > 0){    
+                push(&s,x % 2);
+                x = x /2;
+            }
+            int end = s.top;
+            for(int m = 0; m < end; m++){
+                oarray[num++] = pop(&s);
+                if(num>=length)
+                    printf("The space is not enough\n");
+            }       
         }
     }
+    return num;
 }
 
 int main(){
@@ -490,7 +533,9 @@ int main(){
                 all_difference_DC_Cb[i*block_num_x+j] = all_DC_Cb[i*block_num_x+j]-all_DC_Cb[i*block_num_x+j-1];
                 all_difference_DC_Cr[i*block_num_x+j] = all_DC_Cr[i*block_num_x+j]-all_DC_Cr[i*block_num_x+j-1];
             }
-            //printf("%Lf\t", all_difference_DC_Y[i*block_num_x+j]);
+            printf("%d\t", (int)all_difference_DC_Y[i*block_num_x+j]);
+            if((i*block_num_x+j+1) % 16 ==0)
+                printf("\n");
         }
         //printf("\n");
     }
@@ -498,6 +543,24 @@ int main(){
     // coversion DC difference to codeword (Lookup the Huffman table)
     /*difference->SIZE=>categroy(based on table p.149)->
       Huffman Code(category,VLC,symbol1)+index code(the position in cater,VLI,symbol2)*/
+    /*long double current_value;     
+    for(int i = 0; i < block_num_y; i++){
+        for(int j = 0; j < block_num_x; j++){
+            //all_difference_DC_Y[i*block_num_x+j]
+            current_value = all_difference_DC_Y[i*block_num_x+j];
+            size = cal_size(current_value);
+            amplitude = (current_value < 0)? current_value - (-1)*pow(2,size) -1 : pow(2,size-1) + (current_value - pow(2,size-1));
+            num_code = DC_codeword(codeword,size,amplitude);
+        }
+    }*/
+    int * codeword; // block_num_y*block_num_x*(9+10)
+    int code_size = block_num_y * block_num_x*19;
+    codeword = calloc(code_size, sizeof(int));
+    num_code = DC_codeword(all_difference_DC_Y,block_num_y, block_num_x,codeword,code_size);
+    printf("========\nCodeword\n");
+    for(int i = 0; i< num_code; i++){
+        printf("%d ", codeword[i]);
+    }
 
     free(buffer);
     free(Y);
