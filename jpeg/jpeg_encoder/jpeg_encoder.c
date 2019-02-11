@@ -27,7 +27,7 @@ double CDQT[64] = { 17, 18, 24, 47, 99, 99, 99, 99,
                     99, 99, 99, 99, 99, 99, 99, 99,
                     99, 99, 99, 99, 99, 99, 99, 99,
                     99, 99, 99, 99, 99, 99, 99, 99,
-                    99, 99, 99, 99, 99, 99, 99, 99,};
+                    99, 99, 99, 99, 99, 99, 99, 99};
 
 // Typical Huffman tables
 // Luminance DC coefficient differences
@@ -320,6 +320,8 @@ int main(){
     all_difference_DC_Cb = calloc(block_num_y * block_num_x, sizeof(long double));
     all_difference_DC_Cr = calloc(block_num_y * block_num_x, sizeof(long double));
     int runlength, size, amplitude, end_of_block, num_code;
+    int codeword_length = 0;
+    int big_codeword[75000]={0};
     for(int y = 0; y < block_num_y; y++){
         for(int x = 0; x < block_num_x; x++){
             /*Within this part, the zeros padding and intensity shift will be also implemented.
@@ -373,22 +375,22 @@ int main(){
                     current_dct_Cr[v*8+u]= 0.25*c_u*c_v*sum_Cr;
                 }
             }
-
-            /*printf("========\n%d, %d\n", x, y);
+            if(x==block_num_x-1 && y ==block_num_y-1){
+            printf("========\n%d, %d\n", x, y);
             for(int i = 0; i < 8; i++){
                 for(int j = 0; j < 8; j++){
                     printf("%f\t", current_block_Y[j*8+i]);
                 }
                 printf("\n");
             }
-
+            printf("\n========\nDCT\n");
             for(int v = 0; v < 8; v ++){
                 for(int u = 0; u < 8; u++){
                     printf("%Lf\t", current_dct_Y[v*8+u]);
                 }
-                printf("\n\n");
-            }*/
-
+                printf("\n");
+            }
+            }
             /*Quantization*/
             long double q_Y[64];
             long double q_Cb[64];
@@ -401,13 +403,16 @@ int main(){
                 if(q_Cb[i]==0) q_Cb[i]=0;
                 if(q_Cr[i]==0) q_Cr[i]=0;
             }
-            /*printf("========\n%d, %d\n", x, y);
+
+            if(x==block_num_x-1 && y ==block_num_y-1){
+            printf("\n========\nQuantization\n");
             for(int v = 0; v < 8; v ++){
                 for(int u = 0; u < 8; u++){
                     printf("%Lf\t", q_Y[v*8+u]);
                 }
-                printf("\n\n");
-            }*/
+                printf("\n");
+            }
+            }
 
             /*Entropy coding*/
             //Zig-Zag Ordering Scaning
@@ -434,13 +439,15 @@ int main(){
                 }
             }
 
-            /*printf("========\n%d, %d\n", x, y);
+            if(x==block_num_x-1 && y ==block_num_y-1){
+            printf("\n========\nZigZag\n");
             for(int v = 0; v < 8; v ++){
                 for(int u = 0; u < 8; u++){
                     printf("%Lf\t", Z_Y[v*8+u]);
                 }
-                printf("\n\n");
-            }*/
+                printf("\n");
+            }
+            }
 
             /* DPCM (Differential Pulse Code Modulation) for DC value*/
             //Encode the difference from the DC component of previous 8×8 block
@@ -498,9 +505,11 @@ int main(){
                 }
             }
             list = add_bottom(list, 0,0,0);
+            if(x==block_num_x-1 && y ==block_num_y-1){
             printf("\n========\nRLE\n");
             print_list(list);
             printf("\n");
+            }
 
             // Huffman coding
             /*symbol1(run+size->catergory)->categroy(based on table p.149)->Huffman Codeword*/
@@ -508,9 +517,16 @@ int main(){
               symbol2 is encoded with variable-length integer (VLI) code = Amplitude (index code,the position in cater) (at most 10 bits) */
             int codeword[1700]={0}; // 63*(16+10) = 1638
             num_code = RLE_codeword(list,codeword,1700);
+            for(int a=0; a<num_code;a++)
+                big_codeword[codeword_length+a] = codeword[a];
+            codeword_length += num_code;
+
+            if(x==block_num_x-1 && y ==block_num_y-1){
             printf("========\nCodeword\n");
             for(int i = 0; i< num_code; i++){
                 printf("%d ", codeword[i]);
+            }
+            printf("\n");
             }
 
             delete_list(list);
@@ -519,7 +535,7 @@ int main(){
     
     
     /*Coding of DC Coefficients*/
-    printf("\n\nDC Difference:\n");
+    printf("DC Difference:\n");
     printf("Use the default Huffman table\n");
     for(int i = 0; i < block_num_y; i++){
         for(int j = 0; j < block_num_x; j++){
@@ -537,26 +553,26 @@ int main(){
             if((i*block_num_x+j+1) % 16 ==0)
                 printf("\n");
         }
-        //printf("\n");
     }
 
     // coversion DC difference to codeword (Lookup the Huffman table)
     /*difference->SIZE=>categroy(based on table p.149)->
       Huffman Code(category,VLC,symbol1)+index code(the position in cater,VLI,symbol2)*/
-    /*long double current_value;     
-    for(int i = 0; i < block_num_y; i++){
-        for(int j = 0; j < block_num_x; j++){
-            //all_difference_DC_Y[i*block_num_x+j]
-            current_value = all_difference_DC_Y[i*block_num_x+j];
-            size = cal_size(current_value);
-            amplitude = (current_value < 0)? current_value - (-1)*pow(2,size) -1 : pow(2,size-1) + (current_value - pow(2,size-1));
-            num_code = DC_codeword(codeword,size,amplitude);
-        }
-    }*/
     int * codeword; // block_num_y*block_num_x*(9+10)
     int code_size = block_num_y * block_num_x*19;
     codeword = calloc(code_size, sizeof(int));
     num_code = DC_codeword(all_difference_DC_Y,block_num_y, block_num_x,codeword,code_size);
+    for(int a=0; a<num_code;a++){
+        big_codeword[codeword_length+a] = codeword[a];
+    }
+    codeword_length += num_code;
+    /*Print the whole codeworf*/
+    /*printf("%d\n", codeword_length);
+    for(int i = 0; i < codeword_length; i++){
+        printf("%d\t", big_codeword[i]);
+        printf("%d\t", i);
+    }*/
+
     printf("========\nCodeword\n");
     for(int i = 0; i< num_code; i++){
         printf("%d ", codeword[i]);
